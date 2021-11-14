@@ -68,7 +68,8 @@ def save_fig(file_name, plt):
     plt.savefig(f'{config["visualizations_path"]}/{file_name}.png')
 
 def save_model(model, model_path, model_name):
-    joblib.dump(model, f'{model_path}/{model_name}_model.sav')
+    with open(f'{model_path}/{model_name}_model.sav', 'wb') as f:
+        joblib.dump(model, f)
 
 def download_model(model_path):
     return joblib.load(model_path)

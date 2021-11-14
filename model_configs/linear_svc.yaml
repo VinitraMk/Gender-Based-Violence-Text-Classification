@@ -1,9 +1,9 @@
 model: 'svm'
-penalty: 'l2'
-loss: 'squared_hinge'
-tol: 1e-4
+gamma: 0.001
+tol: 0.0001
 C: 1.0
 multi_class: 'ovr'
-fit_intercept: True
 class_weight: 'balanced'
-max_iter: 1000
+max_iter: 100
+kernel: 'linear'
+break_ties: True

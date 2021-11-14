@@ -1,5 +1,7 @@
+import pandas as pd
 from helper.utils import get_validation_params, get_config
 from sklearn.model_selection import train_test_split
+import pandas as pd
 
 class Validate:
     data = None
@@ -23,7 +25,7 @@ class Validate:
 
     def prepare_validation_dataset(self):
         if (self.validation_params['validation_type'] == 'normal_split'):
-            return self.split_train_validation_set()
+            self.split_train_validation_set()
         else:
             pass
 
@@ -33,10 +35,13 @@ class Validate:
         self.train_X, self.val_X, self.train_y, self.val_y = train_test_split(data, y, test_size = self.validation_params['validation_split_share'], random_state = 42)
         self.train_ids = self.train_X['Tweet_ID']
         self.valid_ids = self.val_X['Tweet_ID']
-        self.train_X = self.train_X.drop(columns = ['Tweet_ID'])
-        self.val_X = self.val_X.drop(columns = ['Tweet_ID'])
-        self.train_X.to_csv(f'{self.config_params["processed_io_path"]}\\input\\train_X.csv', index = False)
-        self.train_y.to_csv(f'{self.config_params["processed_io_path"]}\\input\\train_y.csv', index = False)
-        self.val_X.to_csv(f'{self.config_params["processed_io_path"]}\\input\\valid_X.csv', index = False)
-        self.val_y.to_csv(f'{self.config_params["processed_io_path"]}\\input\\valid_y.csv', index = False)
+        self.train_X = self.train_X.drop(columns = ['Tweet_ID', 'tweet'])
+        self.val_X = self.val_X.drop(columns = ['Tweet_ID', 'tweet'])
+        self.test_X = self.test_X.drop(columns = ['Tweet_ID', 'tweet'])
+        self.train_X.to_csv(f'{self.config_params["processed_io_path"]}\\input\\train_X.csv', index = False, mode='w+')
+        self.train_y.to_csv(f'{self.config_params["processed_io_path"]}\\input\\train_y.csv', index = False, mode='w+')
+        self.val_X.to_csv(f'{self.config_params["processed_io_path"]}\\input\\valid_X.csv', index = False, mode='w+')
+        self.val_y.to_csv(f'{self.config_params["processed_io_path"]}\\input\\valid_y.csv', index = False, mode='w+')
+        self.test_X.to_csv(f'{self.config_params["processed_io_path"]}\\input\\test_X.csv', index = False, mode='w+')
+        self.test_ids.to_csv(f'{self.config_params["processed_io_path"]}\\input\\test_ids.csv', index = False, mode='w+')
 
