@@ -14,7 +14,7 @@ from wordcloud import WordCloud
 #custom imports
 from helper.utils import get_config, get_preproc_params, get_validation_params, save_fig
 from helper.vectorizer import Vectorizer
-from helper.augmenter import Augmenter
+from helper.augmenter import Augmenter, generate_new_data
 from constants.types.label_encoding import LabelEncoding
 
 class Preprocessor:
@@ -28,6 +28,7 @@ class Preprocessor:
     class_dict = dict()
     train_len = 0
     features = None
+    new_data = None
 
     def __init__(self):
         self.config = get_config()
@@ -60,6 +61,8 @@ class Preprocessor:
             self.apply_lematizer()
         #self.plot_word_clouds()
         self.test_train_split()
+        if self.preproc_args['apply_pseudo_labeling']:
+            self.generate_new_data()
         self.apply_vectorization()
         return self.apply_augmentation()
         
@@ -150,18 +153,31 @@ class Preprocessor:
         self.test = self.data[self.data['Tweet_ID'].isin(self.test_ids)]
         self.test = self.test.drop(columns = ['type'])
 
+    def generate_new_data(self):
+        config_params = get_config()
+        generate_new_data(self.train['tweet'])
+        self.new_data = pd.read_csv(f'{config_params["input_path"]}\\new_data.csv')
+
     def apply_vectorization(self):
         print('\tApplying vectorization')
-        vectorizer = Vectorizer(self.train['tweet'], self.train['type'], self.test['tweet'], self.class_dict)
-        train_vectors, test_vectors = vectorizer.apply_vectorizer()
+        vectorizer = Vectorizer(self.train['tweet'], self.train['type'], self.class_dict, self.test['tweet'], self.new_data['tweet'])
+        if self.preproc_args['apply_pseudo_labeling']:
+            train_vectors, test_vectors, new_data_vectors = vectorizer.apply_vectorizer(self.preproc_args['apply_pseudo_labeling'])
+        else:
+            train_vectors, test_vectors = vectorizer.apply_vectorizer()
         train_df = pd.DataFrame(train_vectors)
         test_df = pd.DataFrame(test_vectors)
+        
         train_df['Tweet_ID'] = self.train_ids
         test_df['Tweet_ID'] = self.test_ids
         self.train = self.train.merge(train_df, on='Tweet_ID')
         self.test = self.test.merge(test_df, on='Tweet_ID')
+        if self.preproc_args['apply_pseudo_labeling']:
+            new_data_df = pd.DataFrame(new_data_vectors)
+            new_data_df['Tweet_ID'] = self.new_data['Tweet_ID']
+            self.new_data = self.new_data.merge(new_data_df, on = 'Tweet_ID')
         self.features = vectorizer.get_features()
-        print('No of feature_words: ', len(self.features))
+        print('\t\tNo of feature_words: ', len(self.features))
 
     def apply_augmentation(self):
         print('\tApplying data augmentation')
@@ -176,7 +192,9 @@ class Preprocessor:
         self.train = pd.concat([train_df, self.train_ids, train_texts], axis = 1)
         self.visualize_target_distribution('stype')
         self.train = self.train.drop(columns = ['stype'])
-        return self.train, self.test, self.test_ids, self.features, self.class_dict
+        if not(self.preproc_args['apply_pseudo_labeling']):
+            return self.train, self.test, self.test_ids, self.features, self.class_dict
+        return self.train, self.test, self.test_ids, self.features, self.class_dict, self.new_data
 
     def apply_label_encoding(self):
         print('\tApply label encoding')

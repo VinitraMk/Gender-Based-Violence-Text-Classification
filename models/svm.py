@@ -1,11 +1,12 @@
+from constants.model_enums import Model
 from sklearn.svm import SVC
 from helper.utils import get_model_params
 
 class SVM:
     model = None
 
-    def __init__(self):
-        model_params = get_model_params()
+    def __init__(self, ensemble = False):
+        model_params = get_model_params(ensemble, Model.SVM)
         self.model = SVC(
             kernel=model_params['kernel'],
             gamma=model_params['gamma'],

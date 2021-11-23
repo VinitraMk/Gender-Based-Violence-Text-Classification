@@ -82,3 +82,4 @@ azureml-dataset-runtime==1.36.0
 wordcloud==1.8.1
 torch==1.10.0
 imblearn==0.8.0
+transformers==4.12.3

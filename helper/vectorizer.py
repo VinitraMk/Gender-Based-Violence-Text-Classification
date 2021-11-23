@@ -12,21 +12,23 @@ class Vectorizer:
     vectorizer_method = ''
     train_X = None
     test_X = None
+    new_data_X = None
     all_labels = None
     train_y = None
     
-    def __init__(self, train_X, train_y, test_X, all_labels):
+    def __init__(self, train_X, train_y, all_labels, test_X, new_data_X = None):
         self.preproc_args = get_preproc_params()
         self.train_X = train_X
         self.train_y = train_y
         self.test_X = test_X
+        self.new_data_X = new_data_X
         self.all_labels = all_labels
 
-    def apply_vectorizer(self):
+    def apply_vectorizer(self, apply_pseudo_labeling = False):
         if self.preproc_args['vectorization_method'] == VectorizerTypes.TFIDF:
-            return self.__apply_tfidf_vectorization()
+            return self.__apply_tfidf_vectorization(apply_pseudo_labeling)
         else:
-            return self.__apply_count_vectorization()
+            return self.__apply_count_vectorization(apply_pseudo_labeling)
 
     def get_features(self):
         return self.vectorizer.get_feature_names()
@@ -46,13 +48,16 @@ class Vectorizer:
                 max_features = self.preproc_args['vectorizer_max_features']
             )
 
-    def __apply_scaling(self, train_features, test_features):
+    def __apply_scaling(self, train_features, test_features, apply_pseudo_labeling = False, new_data_features = None):
         scaler = StandardScaler()
         train_features = scaler.fit_transform(train_features)
-        test_features = scaler.fit_transform(test_features)
+        test_features = scaler.transform(test_features)
+        if apply_pseudo_labeling:
+            new_data_features = scaler.transform(new_data_features)
+            return train_features, test_features, new_data_features
         return train_features, test_features
 
-    def __get_best_features(self, all_features):
+    def __get_best_features(self, all_features, apply_pseudo_labeling):
         reduced_vocabulary = []
         for label, label_id in sorted(self.all_labels.items()):
             train_features_chi2 = chi2(all_features, self.train_y == label_id)
@@ -71,17 +76,28 @@ class Vectorizer:
         self.__invoke_vectorizer(reduced_vocabulary)
         train_features = self.vectorizer.fit_transform(self.train_X).toarray()
         test_features = self.vectorizer.transform(self.test_X).toarray()
-        train_features, test_features = self.__apply_scaling(train_features, test_features)
-        return train_features, test_features
+        if apply_pseudo_labeling:
+            new_data_features = self.vectorizer.transform(self.new_data_X).toarray()
+            train_features, test_features, new_data_features = self.__apply_scaling(train_features, test_features, True, new_data_features)
+            return train_features, test_features, new_data_features
+        else:
+            train_features, test_features = self.__apply_scaling(train_features, test_features)
+            return train_features, test_features
 
-    def __apply_tfidf_vectorization(self):
+    def __apply_tfidf_vectorization(self, apply_pseudo_labeling):
         self.__invoke_vectorizer()
         train_features = self.vectorizer.fit_transform(self.train_X).toarray()
-        train_features, test_features = self.__get_best_features(train_features)
-        return train_features, test_features
+        if apply_pseudo_labeling:
+            train_features, test_features, new_data_features = self.__get_best_features(train_features, apply_pseudo_labeling)
+            return train_features, test_features, new_data_features
+        train_features, test_feautures = self.__get_best_features(train_features, apply_pseudo_labeling)
+        return train_features, test_feautures
 
-    def __apply_count_vectorization(self):
+    def __apply_count_vectorization(self, apply_pseudo_labeling):
         self.__invoke_vectorizer()
         train_features = self.vectorizer.fit_transform(self.train_X).toarray()
-        train_features, test_feautures = self.__get_best_features(train_features)
+        if apply_pseudo_labeling:
+            train_features, test_feautures, new_data_features = self.__get_best_features(train_features, apply_pseudo_labeling)
+            return train_features, test_feautures, new_data_features
+        train_features, test_feautures = self.__get_best_features(train_features, apply_pseudo_labeling)
         return train_features, test_feautures
