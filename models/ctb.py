@@ -1,20 +1,16 @@
 from catboost import CatBoostClassifier
+from models.base_singular_model import BaseModel
 from sklearn.multiclass import OneVsOneClassifier
-from helper.utils import get_model_params
 from constants.model_enums import Model
 
-class CTB:
-    model = None
+class CTB(BaseModel):
 
     def __init__(self, ensemble = False):
-        model_params = get_model_params(ensemble, Model.CTB)
+        BaseModel.__init__(self, Model.CTB, ensemble)
         self.model = OneVsOneClassifier(CatBoostClassifier(
-            iterations = model_params['iterations'],
-            learning_rate = model_params['alpha'],
-            depth = model_params['depth'],
-            l2_leaf_reg = model_params['l2_leaf_reg'],
+            iterations = self.params['iterations'],
+            learning_rate = self.params['alpha'],
+            depth = self.params['depth'],
+            l2_leaf_reg = self.params['l2_leaf_reg'],
             verbose = False
         ))
-
-    def get_model(self):
-        return self.model

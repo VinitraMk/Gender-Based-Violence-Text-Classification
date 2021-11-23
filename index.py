@@ -155,13 +155,13 @@ def start_validation(data, test_ids, test_X, label_dict, new_data = None, featur
             download_output(filename, args['model'])
         else:
             validate.prepare_validation_data_in_runs(0)
-            #test_model(model)
-            train_model_in_azure(azexp, azws, azuserenv, args['model'], -1, 0, model_args_string, preproc_args_string, False, filename, '', '', 0)
-            download_output(filename, args['model'], 1)
-            validate.prepare_validation_data_in_runs(1)
-            train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, preproc_args_string, False, filename, '')
-            train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , 0, model_args_string, preproc_args_string, True, filename, '', str(label_dict))
-            download_output(filename, args['model'])
+            test_model(model)
+            #train_model_in_azure(azexp, azws, azuserenv, args['model'], -1, 0, model_args_string, preproc_args_string, False, filename, '', '', 0)
+            #download_output(filename, args['model'], 1)
+            #validate.prepare_validation_data_in_runs(1)
+            #train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, preproc_args_string, False, filename, '')
+            #train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , 0, model_args_string, preproc_args_string, True, filename, '', str(label_dict))
+            #download_output(filename, args['model'])
     else:
         for i in range(validation_args['k']):
             print('\n*************** Run', i,'****************')

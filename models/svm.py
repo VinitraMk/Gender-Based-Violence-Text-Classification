@@ -1,23 +1,19 @@
 from constants.model_enums import Model
 from sklearn.svm import SVC
-from helper.utils import get_model_params
+from models.base_singular_model import BaseModel
 
 class SVM:
-    model = None
 
     def __init__(self, ensemble = False):
-        model_params = get_model_params(ensemble, Model.SVM)
+        BaseModel.__init__(self, Model.SVM, ensemble)
         self.model = SVC(
-            kernel=model_params['kernel'],
-            gamma=model_params['gamma'],
-            tol=model_params['tol'],
-            C=model_params['C'],
-            decision_function_shape=model_params['multi_class'],
-            class_weight = model_params['class_weight'],
+            kernel=self.params['kernel'],
+            gamma=self.params['gamma'],
+            tol=self.params['tol'],
+            C=self.params['C'],
+            decision_function_shape=self.params['multi_class'],
+            class_weight = self.params['class_weight'],
             random_state = 42,
-            max_iter = model_params['max_iter'],
-            break_ties = model_params['break_ties']
+            max_iter = self.params['max_iter'],
+            break_ties = self.params['break_ties']
         )
-
-    def get_model(self):
-        return self.model

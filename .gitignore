@@ -6,3 +6,4 @@ processed_io/
 visualizations/
 __pycache__/
 *.py[cod]
+catboost_info/

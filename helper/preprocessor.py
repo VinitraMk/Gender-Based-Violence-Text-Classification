@@ -187,8 +187,9 @@ class Preprocessor:
         augmenter = Augmenter(train_tmp, y_tmp)
         train_tmp, y_tmp = augmenter.apply_data_augmentation()
         train_df = pd.DataFrame(train_tmp)
-        train_df['type'] = pd.Series(y_tmp)
-        train_df['stype'] = self.set_string_labels(train_df['type'])
+        train_y_df = pd.DataFrame(y_tmp, columns=['type'])
+        train_df = pd.concat([train_df, train_y_df], axis = 1)
+        train_df = pd.concat([train_df, self.set_string_labels(train_df['type'])], axis = 1)
         self.train = pd.concat([train_df, self.train_ids, train_texts], axis = 1)
         self.visualize_target_distribution('stype')
         self.train = self.train.drop(columns = ['stype'])
@@ -208,7 +209,7 @@ class Preprocessor:
         for key in self.class_dict.keys():
             val = self.class_dict[key]
             y = [key if x == val else x for x in y]
-        return y
+        return pd.DataFrame(y, columns = ['stype'])
 
     def apply_onehot_encoding(self):
         pass

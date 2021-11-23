@@ -1,5 +1,6 @@
 model: 'ensembler'
     voting_type: 'hard'
+    ensembler_type: 'voting'
     ensembler_args:
         xgb:
             model: 'xgb'
@@ -12,7 +13,7 @@ model: 'ensembler'
             max_depth: 20
         ctb: 
             model: 'ctb'
-            iterations: 100
+            iterations: 20
             alpha: 0.1
             depth: 10
             l2_leaf_reg: 3.0
