@@ -2,7 +2,7 @@ from xgboost import XGBClassifier
 from constants.model_enums import Model
 from models.base_singular_model import BaseModel
 
-class XGB:
+class XGB(BaseModel):
 
     def __init__(self, ensemble = False):
         BaseModel.__init__(self, Model.XGB, ensemble)

@@ -7,6 +7,7 @@ from azureml.data import OutputFileDatasetConfig
 from azure.storage.blob import BlobServiceClient
 from datetime import date
 import pandas as pd
+from constants.types.validation_method import ValidationMethod
 
 #custom imports
 from helper.utils import get_config, get_filename, get_model_params, get_preproc_params, get_validation_params, save_model 
@@ -84,7 +85,9 @@ def train_model_in_azure(azexp, azws, azuserenv, model_name, epoch_index, valida
         compute_target='mikasa',
         environment=azuserenv)
     run = azexp.submit(config)
-    run.wait_for_completion(show_output=True)
+    log_path = get_config()['experimental_output_path']
+    #run = azexp.start_logging(snapshot_directory=f"{log_path}/azure_experiment_logs")
+    run.wait_for_completion(show_output=True, raise_on_error = True)
     aml_url = run.get_portal_url()
     print(aml_url)
 
@@ -144,7 +147,7 @@ def start_validation(data, test_ids, test_X, label_dict, new_data = None, featur
     validate = Validate(data, test_X, test_ids, label_dict, new_data)
     model_args_string = json.dumps(args)
     preproc_args_string = json.dumps(get_preproc_params())
-    if validation_args['validation_type'] == 'normal_split':
+    if validation_args['validation_type'] == ValidationMethod.NORMAL_SPLIT:
         print('\n\n******* Validation Run ***********')
         filename = get_filename(args['model'])
         if not(preproc_args['apply_pseudo_labeling']):
@@ -155,14 +158,14 @@ def start_validation(data, test_ids, test_X, label_dict, new_data = None, featur
             download_output(filename, args['model'])
         else:
             validate.prepare_validation_data_in_runs(0)
-            test_model(model)
-            #train_model_in_azure(azexp, azws, azuserenv, args['model'], -1, 0, model_args_string, preproc_args_string, False, filename, '', '', 0)
-            #download_output(filename, args['model'], 1)
-            #validate.prepare_validation_data_in_runs(1)
-            #train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, preproc_args_string, False, filename, '')
-            #train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , 0, model_args_string, preproc_args_string, True, filename, '', str(label_dict))
-            #download_output(filename, args['model'])
-    else:
+            #test_model(model)
+            train_model_in_azure(azexp, azws, azuserenv, args['model'], -1, 0, model_args_string, preproc_args_string, False, filename, '', '', 0)
+            download_output(filename, args['model'], 1)
+            validate.prepare_validation_data_in_runs(1)
+            train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, preproc_args_string, False, filename, '')
+            train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , 0, model_args_string, preproc_args_string, True, filename, '', str(label_dict))
+            download_output(filename, args['model'])
+    elif validation_args['validation_type'] == ValidationMethod.K_FOLD:
         for i in range(validation_args['k']):
             print('\n*************** Run', i,'****************')
             validate.prepare_validation_dataset()
@@ -170,8 +173,21 @@ def start_validation(data, test_ids, test_X, label_dict, new_data = None, featur
         print('\n\n*************** Final Run ****************')
         filename = get_filename(args['model'])
         validate.prepare_full_dataset()
-        train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , validation_args['k'], model_args_string, True, filename)
+        train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , validation_args['k'], model_args_string, preproc_args_string, True, filename, str(label_dict))
         download_output(filename, args['model'])
+    elif validation_args['validation_type'] == ValidationMethod.STRATIFIED_K_FOLD:
+        train_indices, valid_indices = validate.get_stratified_kfold_indices()
+        for i, e in enumerate((train_indices, valid_indices)):
+            print('\n*************** Run', i,'****************')
+            validate.prepare_stratified_kfold_dataset(e[0], e[1])
+            train_model_in_azure(azexp, azws, azuserenv, args['model'], i , validation_args['k'], model_args_string)
+        print('\n\n*************** Final Run ****************')
+        filename = get_filename(args['model'])
+        validate.prepare_full_dataset()
+        train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , validation_args['k'], model_args_string, preproc_args_string, True, filename, str(label_dict))
+        download_output(filename, args['model'])
+    else:
+        raise ValueError(f'{validation_args["validation_type"]} is an invalid Validation method')
 
 def read_args():
     args = get_model_params()

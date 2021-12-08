@@ -4,7 +4,7 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-from sklearn.metrics import mean_squared_error, accuracy_score
+from sklearn.metrics import mean_squared_error, accuracy_score, confusion_matrix
 import joblib
 import datetime
 
@@ -77,6 +77,7 @@ if __name__ == "__main__":
     model, X, y, valid_X, valid_y, test_X, test_ids = get_data(model_path, model_name, input_data_path, save_preds, pseudo_labeling_run)
     y_preds = None
     avg_score = 0.0
+    val_preds_confusion_matrix = None
 
     ypreds = train_model_and_predict(model, save_preds, model_output_path, model_name, pseudo_labeling_run, valid_X, test_X)
 
@@ -84,16 +85,24 @@ if __name__ == "__main__":
     log_file_contents = dict()
     if not(save_preds) and pseudo_labeling_run != 0:
         avg_score = accuracy_score(valid_y.values, ypreds)
+        #print('not save preds', avg_score)
+        val_preds_confusion_matrix = str(confusion_matrix(valid_y.values, ypreds))
     if os.path.isfile(log_path):
         with open(log_path) as log_file:
             log_file_contents = json.load(log_file)
         if not(save_preds):
             avg_score = avg_score + log_file_contents['model_output']['current_run_accuracy']
+            #print('log path file, save_preds = false', avg_score)
         else:
             avg_score = log_file_contents['model_output']['current_run_accuracy']
+            val_preds_confusion_matrix = log_file_contents['model_output']['confusion_matrix_final']
+            #print('save_preds = True', avg_score)
+
         if epoch_index == k-1 and k!=0:
+            #print('avg score before mean', avg_score)
             avg_score = avg_score / k
-    log_file_contents['model_output'] = { 'current_run_accuracy': avg_score }
+            #print('avg score after mean', avg_score)
+    log_file_contents['model_output'] = { 'current_run_accuracy': avg_score, 'confusion_matrix_final': val_preds_confusion_matrix }
     preds_df = test_ids
     if save_preds == True:
         log_path = f'{log_output_path}/{model_filename}.txt'

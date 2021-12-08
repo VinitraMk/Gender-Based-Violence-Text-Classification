@@ -11,12 +11,12 @@ model: 'ensembler'
             grow_policy: 'lossguide'
             single_precision_histogram: False
             max_depth: 20
-        ctb: 
-            model: 'ctb'
-            iterations: 20
-            alpha: 0.1
-            depth: 10
-            l2_leaf_reg: 3.0
+        decision_tree:
+            model: 'decision_tree'
+            criterion: 'gini'
+            max_depth: 20
+            max_features: 5000
+            class_weight: 'balanced'
         rfa:
             model: 'rfa'
             n_estimators: 60

@@ -2,7 +2,7 @@ from constants.model_enums import Model
 from sklearn.ensemble import RandomForestClassifier
 from models.base_singular_model import BaseModel
 
-class RFA:
+class RFA(BaseModel):
 
     def __init__(self, ensemble = False):
         BaseModel.__init__(self, Model.RFA, ensemble)

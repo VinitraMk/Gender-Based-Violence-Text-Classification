@@ -4,7 +4,6 @@ from helper.utils import get_preproc_params
 from constants.types.vectorizer_types import VectorizerTypes
 from sklearn.feature_selection import chi2
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 
 class Vectorizer:
     vectorizer = None
@@ -39,7 +38,8 @@ class Vectorizer:
                 sublinear_tf = self.preproc_args['sublinear_tf'],
                 norm = self.preproc_args['norm'],
                 vocabulary = vocabulary,
-                ngram_range = (self.preproc_args['ngram_range_min'], self.preproc_args['ngram_range_max'])
+                ngram_range = (self.preproc_args['ngram_range_min'], self.preproc_args['ngram_range_max']),
+                max_features = self.preproc_args['vectorizer_max_features']
             )
         elif self.preproc_args['vectorization_method'] == VectorizerTypes.WC:
             self.vectorizer = CountVectorizer(
@@ -48,17 +48,9 @@ class Vectorizer:
                 max_features = self.preproc_args['vectorizer_max_features']
             )
 
-    def __apply_scaling(self, train_features, test_features, apply_pseudo_labeling = False, new_data_features = None):
-        scaler = StandardScaler()
-        train_features = scaler.fit_transform(train_features)
-        test_features = scaler.transform(test_features)
-        if apply_pseudo_labeling:
-            new_data_features = scaler.transform(new_data_features)
-            return train_features, test_features, new_data_features
-        return train_features, test_features
-
     def __get_best_features(self, all_features, apply_pseudo_labeling):
         reduced_vocabulary = []
+        best_words = []
         for label, label_id in sorted(self.all_labels.items()):
             train_features_chi2 = chi2(all_features, self.train_y == label_id)
             indices = np.argsort(train_features_chi2[0])
@@ -68,36 +60,37 @@ class Vectorizer:
             for i in range(self.preproc_args['ngram_range_min'], self.preproc_args['ngram_range_max'] + 1):
                 n_gram = [v for v in feature_names if len(v.split(' ')) == i]
                 n_grams.append(n_gram)
-
-            for n_gram in n_grams:
+            for idx, n_gram in enumerate(n_grams):
                 reduced_vocabulary = reduced_vocabulary + n_gram[-self.preproc_args['best_k_features']:]
-
+                if idx == 0:
+                    best_words = best_words + n_gram[-self.preproc_args['best_k_words']:]
+        best_words = list(set(best_words))
         reduced_vocabulary = list(set(reduced_vocabulary))
         self.__invoke_vectorizer(reduced_vocabulary)
         train_features = self.vectorizer.fit_transform(self.train_X).toarray()
         test_features = self.vectorizer.transform(self.test_X).toarray()
         if apply_pseudo_labeling:
             new_data_features = self.vectorizer.transform(self.new_data_X).toarray()
-            train_features, test_features, new_data_features = self.__apply_scaling(train_features, test_features, True, new_data_features)
-            return train_features, test_features, new_data_features
+            #train_features, test_features, new_data_features = self.__apply_scaling(train_features, test_features, True, new_data_features)
+            return train_features, test_features, new_data_features, best_words
         else:
-            train_features, test_features = self.__apply_scaling(train_features, test_features)
-            return train_features, test_features
+            #train_features, test_features = self.__apply_scaling(train_features, test_features)
+            return train_features, train_features, best_words
 
     def __apply_tfidf_vectorization(self, apply_pseudo_labeling):
         self.__invoke_vectorizer()
         train_features = self.vectorizer.fit_transform(self.train_X).toarray()
         if apply_pseudo_labeling:
-            train_features, test_features, new_data_features = self.__get_best_features(train_features, apply_pseudo_labeling)
-            return train_features, test_features, new_data_features
-        train_features, test_feautures = self.__get_best_features(train_features, apply_pseudo_labeling)
-        return train_features, test_feautures
+            train_features, test_features, new_data_features, best_words = self.__get_best_features(train_features, apply_pseudo_labeling)
+            return train_features, test_features, new_data_features, best_words
+        train_features, test_features, best_words = self.__get_best_features(train_features, apply_pseudo_labeling)
+        return train_features, test_features, best_words
 
     def __apply_count_vectorization(self, apply_pseudo_labeling):
         self.__invoke_vectorizer()
         train_features = self.vectorizer.fit_transform(self.train_X).toarray()
         if apply_pseudo_labeling:
-            train_features, test_feautures, new_data_features = self.__get_best_features(train_features, apply_pseudo_labeling)
-            return train_features, test_feautures, new_data_features
-        train_features, test_feautures = self.__get_best_features(train_features, apply_pseudo_labeling)
-        return train_features, test_feautures
+            train_features, test_features, new_data_features, best_words = self.__get_best_features(train_features, apply_pseudo_labeling)
+            return train_features, test_features, new_data_features, best_words
+        train_features, test_features, best_words = self.__get_best_features(train_features, apply_pseudo_labeling)
+        return train_features, test_features, best_words
