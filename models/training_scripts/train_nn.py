@@ -91,7 +91,8 @@ def train_model(model, X, y, criterion, optimizer, num_epochs):
     running_loss = 0.0
     for epoch in range(num_epochs):
         optimizer.zero_grad()
-        outputs = model(X)
+        X_values = torch.tensor(X.values)
+        outputs = model(X_values)
         print(outputs[:5])
         loss = criterion(outputs, y)
         loss.backward()
