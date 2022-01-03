@@ -184,7 +184,7 @@ def start_validation(data, test_ids, test_X, label_dict, new_data = None, featur
             validate.prepare_validation_dataset()
             #test_model(model)
             if is_nn:
-                train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, is_nn, preproc_args_string, False, filename, '', '', -1, False)
+                train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, is_nn, preproc_args_string, False, filename, '', '', -1, True)
                 train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , 0, model_args_string, is_nn, preproc_args_string, True, filename, '', str(label_dict))
             else:
                 train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, is_nn, preproc_args_string, False, filename, '', '', -1, True)

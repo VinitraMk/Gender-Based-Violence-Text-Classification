@@ -17,7 +17,7 @@ class ANN(nn.Module):
 
     def __init__(self):
         super(ANN, self).__init__()
-        self.fc_layer = nn.Linear(in_features = 320, out_features=162)
+        self.fc_layer = nn.Linear(in_features = 319, out_features=162)
         self.output_layer = nn.Linear(in_features = 162, out_features=5)
 
     def forward(self, x):
@@ -70,8 +70,10 @@ def fine_tune_model(model_path, model_name, lr):
     model.cuda()
     print('model params after', model)
     criterion = model_object['criterion']
+    print('criterion object', criterion)
     #optimzer = optim.SGD(model.parameters(), lr = lr, momentum = 0.9)
     optimizer = model_object['optimizer']
+    print('optimizer object', optimizer)
     return model, criterion, optimizer
 
 def get_data(input_data_path, save_preds, pseudo_labeling_run):
@@ -89,10 +91,12 @@ def get_data(input_data_path, save_preds, pseudo_labeling_run):
 def train_model(model, X, y, criterion, optimizer, num_epochs):
     outputs = None
     running_loss = 0.0
+    print(X.shape)
+    X_values = torch.tensor(X.values)
+    X_values = X_values.type(torch.FloatTensor).to(torch.device('cuda:0'))
     for epoch in range(num_epochs):
         optimizer.zero_grad()
-        X_values = torch.tensor(X.values)
-        outputs = model(X_values)
+        _, outputs = torch.max(model(X_values), 1)
         print(outputs[:5])
         loss = criterion(outputs, y)
         loss.backward()
