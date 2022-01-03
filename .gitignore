@@ -7,3 +7,9 @@ visualizations/
 __pycache__/
 *.py[cod]
 catboost_info/
+venv/
+Scripts/
+Lib/
+pyvenv.cfg
+config.json
+catboost_info/

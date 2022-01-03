@@ -7,3 +7,4 @@ class Model(str, enum.Enum):
     DECISION_TREE = 'decision_tree'
     RFA = 'rfa'
     ENSEMBLER = 'ensembler'
+    ANN = 'ann'

@@ -3,6 +3,7 @@ from os import path, getenv
 import yaml
 import pandas as pd
 import joblib
+import torch
 
 def get_filename(filename):
     now = datetime.now().strftime('%d%m%Y-%H%M%S')
@@ -67,9 +68,13 @@ def save_fig(file_name, plt):
     config = get_all_args()['config']
     plt.savefig(f'{config["visualizations_path"]}/{file_name}.png')
 
-def save_model(model, model_path, model_name):
-    with open(f'{model_path}/{model_name}_model.sav', 'wb') as f:
-        joblib.dump(model, f)
+def save_model(model, model_path, model_name, is_nn = False):
+    if not(is_nn):
+        with open(f'{model_path}/{model_name}_model.sav', 'wb') as f:
+                joblib.dump(model, f)
+    else:
+        with open(f'{model_path}/{model_name}_model.pt', 'wb') as f:
+            torch.save(model, f)
 
 def download_model(model_path):
     return joblib.load(model_path)

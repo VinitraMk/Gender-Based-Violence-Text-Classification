@@ -36,12 +36,12 @@ class Preprocessor:
 
     def __init__(self):
         self.config = get_config()
-        self.train = pd.read_csv(f'{self.config["input_path"]}/Train.csv')
+        self.train = pd.read_csv(f'{self.config["input_path"]}/Train.csv', encoding="ISO-8859-1")
         self.train_ids = self.train['Tweet_ID']
         self.train_len = self.train.shape[0]
-        self.test = pd.read_csv(f'{self.config["input_path"]}/Test.csv')
+        self.test = pd.read_csv(f'{self.config["input_path"]}/Test.csv', encoding="ISO-8859-1")
         self.test_ids = self.test['Tweet_ID']
-        self.data = pd.read_csv(f'{self.config["input_path"]}/data.csv')
+        self.data = pd.read_csv(f'{self.config["input_path"]}/data.csv', encoding="ISO-8859-1")
         self.preproc_args = get_preproc_params()
 
     def start_preprocessing(self):
@@ -160,7 +160,8 @@ class Preprocessor:
         print('\tRestore train and test split')
         self.train = self.data[self.data['Tweet_ID'].isin(self.train_ids)]
         self.test = self.data[self.data['Tweet_ID'].isin(self.test_ids)]
-        self.new_data = self.data[self.data['Tweet_ID'].isin(self.new_data_ids)]
+        if self.preproc_args['apply_pseudo_labeling']:
+            self.new_data = self.data[self.data['Tweet_ID'].isin(self.new_data_ids)]
         self.test = self.test.drop(columns = ['type'])
 
     def __generate_new_data(self):
@@ -188,6 +189,7 @@ class Preprocessor:
             self.test[col_name] = self.test['tweet'].apply(lambda x: 1 if x.count(word) > 0 else 0)
             if self.preproc_args['apply_pseudo_labeling']:
                 self.new_data[col_name] = self.new_data['tweet'].apply(lambda x: 1 if x.count(word) > 0 else 0)
+        print('\t\tNo of features: ', len(list(self.train.columns)) - 2)
 
     def __apply_scaling(self):
         train_df = self.train.drop(columns = ['tweet', 'Tweet_ID', 'type'])
@@ -232,15 +234,18 @@ class Preprocessor:
 
     def __apply_vectorization(self):
         print('\tApplying vectorization')
-        vectorizer = Vectorizer(self.train['tweet'], self.train['type'], self.class_dict, self.test['tweet'], self.new_data['tweet'])
+        if self.preproc_args['apply_pseudo_labeling']:
+            vectorizer = Vectorizer(self.train['tweet'], self.train['type'], self.class_dict, self.test['tweet'], self.new_data['tweet'])
+        else:
+            vectorizer = Vectorizer(self.train['tweet'], self.train['type'], self.class_dict, self.test['tweet'])
         if self.preproc_args['apply_pseudo_labeling']:
             train_vectors, test_vectors, new_data_vectors, self.best_words = vectorizer.apply_vectorizer(self.preproc_args['apply_pseudo_labeling'])
+            self.__convert_vectors_dataframe(train_vectors, test_vectors, new_data_vectors)
         else:
             train_vectors, test_vectors, self.best_words = vectorizer.apply_vectorizer()
-
-        self.__convert_vectors_dataframe(train_vectors, test_vectors, new_data_vectors)
+            self.__convert_vectors_dataframe(train_vectors, test_vectors)
+        
         self.features = vectorizer.get_features()
-        print('\t\tNo of feature_words: ', len(self.features))
         print('\t\tBest words: ', self.best_words)
 
     def __apply_augmentation(self):

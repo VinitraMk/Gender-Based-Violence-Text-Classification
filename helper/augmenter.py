@@ -39,4 +39,4 @@ def generate_new_data(train_texts):
         new_data = aug.augment(data)
         new_data_df = pd.DataFrame(new_data,columns=['tweet'])
         new_data_df.index.rename('Tweet_ID', inplace=True)
-        new_data_df.to_csv(f'{config["input_path"]}\\new_data.csv', mode='w+')
+        new_data_df.to_csv(f'{config["input_path"]}\\new_data.csv', mode='w+', index=False)
