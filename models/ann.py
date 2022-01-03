@@ -25,7 +25,7 @@ class ANN(BaseNNModel):
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(model.parameters(), self.params['lr'], momentum = 0.9)
         self.model = model_object = {
-            'model': model,
+            'model_state_dict': model.state_dict(),
             'optimizer': self.optimizer,
             'criterion': self.criterion
         }

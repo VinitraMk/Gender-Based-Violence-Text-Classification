@@ -14,8 +14,6 @@ import numpy as np
 #### Model Definition ####
 
 class ANN(nn.Module):
-    fc_layer = None
-    output_layer = None
 
     def __init__(self):
         super(ANN, self).__init__()
@@ -65,10 +63,10 @@ def fine_tune_model(model_path, model_name, lr):
         print('Aborting training')
         exit()
     model_object = torch.load(get_model_path(model_path, model_name))
-    #model = ANN()
-    #model.load_state_dict(model_object['model_state_dict'])
-    print('model object', model_object)
-    model = model_object['model']
+    model = ANN()
+    #model_state = model.state_dict()
+    #model_state.update(model_object['model_state_dict'])
+    model.load_state_dict(model_object['model_state_dict'])
     model.cuda()
     print('model params after', model)
     criterion = model_object['criterion']
