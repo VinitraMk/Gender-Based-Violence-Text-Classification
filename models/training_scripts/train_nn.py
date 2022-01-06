@@ -17,15 +17,12 @@ class ANN(nn.Module):
 
     def __init__(self):
         super(ANN, self).__init__()
-        self.fc_layer = nn.Linear(in_features = 319, out_features=162)
+        self.fc_layer = nn.Linear(in_features = 320, out_features=162)
         self.output_layer = nn.Linear(in_features = 162, out_features=5)
 
     def forward(self, x):
-        print(x, self.fc_layer)
-        x = F.relu(self.fc_layer(x))
-        print('relu done')
-        x = self.output_layer(x)
-        print('output done')
+        x = F.tanh(self.fc_layer(x))
+        x = F.softmax(self.output_layer(x))
         return x
 
 def get_model_path(model_path, model_name):
@@ -88,31 +85,74 @@ def get_data(input_data_path, save_preds, pseudo_labeling_run):
         test_ids = pd.read_csv(f'{input_data_path}/test_ids.csv')
     return X, y, valid_X, valid_y, test_X, test_ids
 
-def train_model(model, X, y, criterion, optimizer, num_epochs):
+def get_target_labels(y):
+    convert_to_class_arr = lambda x: np.array([1 if x==i else 0 for i in range(5)])
+    y['type_converted'] = y['type'].apply(convert_to_class_arr)
+    return y
+
+def convert_input_to_tensor(X, y = None, start_index = -1, end_index = -1):
+    if start_index != -1:
+        X_values = torch.tensor(X.values[start_index:end_index])
+        X_values = X_values.type(torch.FloatTensor).to(torch.device("cuda:0"))
+    else:
+        X_values = torch.tensor(X.values)
+        X_values = X_values.type(torch.FloatTensor).to(torch.device("cuda:0"))
+    
+    if y is not(None):
+        if start_index != -1:
+            y_values = torch.tensor(y.iloc[start_index:end_index].values).to(torch.device('cuda:0'))
+        else:
+            y_values = torch.tensor(y.values).to(torch.device('cuda:0'))
+        return X_values, y_values
+    return X_values
+
+def train_model(model, X, y, criterion, optimizer, num_epochs, batch_size):
     outputs = None
-    running_loss = 0.0
     print(X.shape)
-    X_values = torch.tensor(X.values)
-    X_values = X_values.type(torch.FloatTensor).to(torch.device('cuda:0'))
+    model.train()
+    no_of_batches = int(X.shape[0] / batch_size) + 1
     for epoch in range(num_epochs):
-        optimizer.zero_grad()
-        _, outputs = torch.max(model(X_values), 1)
-        print(outputs[:5])
-        loss = criterion(outputs, y)
-        loss.backward()
-        optimizer.step()
-        running_loss += loss.item()
+        running_loss = 0.0
+        print(f'Starting epoch {epoch}...')
+        for i, batch in enumerate(range(no_of_batches)):
+            start_index = (i * batch_size)
+            if ((start_index + batch_size) < X.shape[0]):
+                end_index = start_index + batch_size
+                X_values, y_values = convert_input_to_tensor(X, y, start_index, end_index)
+                #print(f'Batch {i}: from {start_index} to {end_index}')
+            else:
+                start_index = ((i-1) * batch_size) + batch_size
+                X_values, y_values = convert_input_to_tensor(X, y, start_index, end_index)
+                #print(f'Batch {i}: from {start_index} to end of input')
+            optimizer.zero_grad()
+            #_, outputs = torch.max(model(X_values), 1)
+            outputs = model(X_values)
+            #print('actual output', outputs[:5])
+            #print('expected output', y_values[:5])
+            loss = criterion(outputs, y_values)
+            loss.backward()
+            optimizer.step()
+            if not(torch.isnan(loss)):
+                running_loss += loss.item()
+        print(f'Running loss after epoch {epoch}: {running_loss}\n')
     return model, running_loss
 
 def predict(model, save_preds, pseudo_labeling_run, valid_X, test_X, label_dict):
     ypreds = None
+    model.eval()
     if save_preds:
-        ypreds = model(test_X)
+        X_values = convert_input_to_tensor(test_X)
+        _, ypreds = torch.max(model(X_values), 1)
+        ypreds = ypreds.cpu().detach().numpy()
         ypreds = restore_label(label_dict, ypreds)
     elif pseudo_labeling_run == 0:
-        ypreds = model(test_X)
+        X_values = convert_input_to_tensor(test_X)
+        _, ypreds = torch.max(model(X_values), 1)
+        ypreds = ypreds.cpu().detach().numpy()
     else:
-        ypreds = model(valid_X)
+        X_values = convert_input_to_tensor(valid_X)
+        _, ypreds = torch.max(model(X_values), 1)
+        ypreds = ypreds.cpu().detach().numpy()
     return ypreds
 
 if __name__ == "__main__":
@@ -131,6 +171,7 @@ if __name__ == "__main__":
 
     lr = int(model_params['lr'])
     num_epochs = int(model_params['num_epochs'])
+    batch_size = int(model_params['batch_size'])
 
     input_data_path = f'{mounted_input_path}/input'
     model_path = f'{mounted_input_path}/models'
@@ -146,7 +187,8 @@ if __name__ == "__main__":
     val_preds_confusion_matrix = None
     print('Starting training....\n')
     if not(save_preds):
-        model, running_loss = train_model(model, X, y, criterion, optimizer, num_epochs)
+        #converted_y = get_target_labels(y)
+        model, running_loss = train_model(model, X, y['type'], criterion, optimizer, num_epochs, batch_size)
     #joblib.dump(model, get_model_path(model_output_path, model_name))
     torch.save(model.state_dict(), get_model_path(model_output_path, model_name))
     ypreds = predict(model, save_preds, pseudo_labeling_run, valid_X, test_X, label_dict)

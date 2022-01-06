@@ -177,9 +177,9 @@ def start_validation(data, test_ids, test_X, label_dict, new_data = None, featur
     validate = Validate(data, test_X, test_ids, label_dict, new_data)
     model_args_string = json.dumps(args)
     preproc_args_string = json.dumps(get_preproc_params())
+    filename = get_filename(args['model'])
     if validation_args['validation_type'] == ValidationMethod.NORMAL_SPLIT:
         print('\n\n******* Validation Run ***********')
-        filename = get_filename(args['model'])
         if not(preproc_args['apply_pseudo_labeling']):
             validate.prepare_validation_dataset()
             #test_model(model)
@@ -196,14 +196,14 @@ def start_validation(data, test_ids, test_X, label_dict, new_data = None, featur
             train_model_in_azure(azexp, azws, azuserenv, args['model'], -1, 0, model_args_string, is_nn, preproc_args_string, False, filename, '', '', 0, True)
             download_output(filename, args['model'], 1)
             validate.prepare_validation_data_in_runs(1)
-            train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, is_nn, preproc_args_string, False, filename, '')
+            train_model_in_azure(azexp, azws, azuserenv, args['model'], 0, 1, model_args_string, is_nn, preproc_args_string, False, filename, '', '', 0, True)
             train_model_in_azure(azexp, azws, azuserenv, args['model'], -1 , 0, model_args_string, is_nn, preproc_args_string, True, filename, '', str(label_dict))
             download_output(filename, args['model'])
     elif validation_args['validation_type'] == ValidationMethod.K_FOLD:
         for i in range(validation_args['k']):
             print('\n*************** Run', i,'****************')
             validate.prepare_validation_dataset()
-            train_model_in_azure(azexp, azws, azuserenv, args['model'], i , validation_args['k'], model_args_string, is_nn, preproc_arggs_string, True, filename, '', '', -1, True)
+            train_model_in_azure(azexp, azws, azuserenv, args['model'], i , validation_args['k'], model_args_string, is_nn, preproc_args_string, True, filename, '', '', -1, True)
         print('\n\n*************** Final Run ****************')
         filename = get_filename(args['model'])
         validate.prepare_full_dataset()

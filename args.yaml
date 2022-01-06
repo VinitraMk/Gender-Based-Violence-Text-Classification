@@ -1,16 +1,17 @@
 config:
-    input_path: "C:\\Users\\sanjeevmk\\ML\\Gender Based Violence Text Classification\\input"
-    processed_io_path: "C:\\Users\\sanjeevmk\\ML\\Gender Based Violence Text Classification\\processed_io"
-    output_path: "C:\\Users\\sanjeevmk\\ML\\Gender Based Violence Text Classification\\output"
-    internal_output_path: "C:\\Users\\sanjeevmk\\ML\\Gender Based Violence Text Classification\\output\\internal_output"
-    visualizations_path: "C:\\Users\\sanjeevmk\\ML\\Gender Based Violence Text Classification\\visualizations"
-    experimental_output_path: "C:\\Users\\sanjeevmk\\ML\\Gender Based Violence Text Classification\\experimental_logs"
+    input_path: "C:\\Users\\vimurali\\ML\\Gender-Based-Violence-Text-Classification\\input"
+    processed_io_path: "C:\\Users\\vimurali\\ML\\Gender-Based-Violence-Text-Classification\\processed_io"
+    output_path: "C:\\Users\\vimurali\\ML\\Gender-Based-Violence-Text-Classification\\output"
+    internal_output_path: "C:\\Users\\vimurali\\ML\\Gender-Based-Violence-Text-Classification\\output\\internal_output"
+    visualizations_path: "C:\\Users\\vimurali\\ML\\Gender-Based-Violence-Text-Classification\\visualizations"
+    experimental_output_path: "C:\\Users\\vimurali\\ML\\Gender-Based-Violence-Text-Classification\\experimental_logs"
     azureblob_name: "azureml-blobstore-31aeaa24-564c-4aa8-bdf4-fc4b5707bd1b"
 
 model_args:
     model: 'ann'
-    lr: 0.01
-    num_epochs: 5
+    lr: 0.0001
+    num_epochs: 10
+    batch_size: 1000
                 
 preproc_args:
     encoding_type: 'LABEL_ENCODING'
@@ -26,7 +27,7 @@ preproc_args:
     sampling_method: 'SMOTE_SAMPLING'
     sampling_k: 5
     sampling_strategy: 'not majority'
-    apply_pseudo_labeling: False
+    apply_pseudo_labeling: True
 
 validation_args:
     validation_type: 'NORMAL_SPLIT'

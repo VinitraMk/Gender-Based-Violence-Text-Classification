@@ -189,7 +189,7 @@ class Preprocessor:
             self.test[col_name] = self.test['tweet'].apply(lambda x: 1 if x.count(word) > 0 else 0)
             if self.preproc_args['apply_pseudo_labeling']:
                 self.new_data[col_name] = self.new_data['tweet'].apply(lambda x: 1 if x.count(word) > 0 else 0)
-        print('\t\tNo of features: ', len(list(self.train.columns)) - 2)
+        print('\t\tNo of features: ', len(list(self.train.columns)) - 3)
 
     def __apply_scaling(self):
         train_df = self.train.drop(columns = ['tweet', 'Tweet_ID', 'type'])
