@@ -17,12 +17,17 @@ class ANN(nn.Module):
 
     def __init__(self):
         super(ANN, self).__init__()
-        self.fc_layer = nn.Linear(in_features = 320, out_features=162)
-        self.output_layer = nn.Linear(in_features = 162, out_features=5)
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(in_features = 320, out_features = 162),
+            nn.Sigmoid(),
+            nn.Linear(in_features = 162, out_features = 81),
+            nn.Sigmoid(),
+            nn.Linear(in_features = 81, out_features = 5)
+        )
 
     def forward(self, x):
-        x = F.tanh(self.fc_layer(x))
-        x = F.softmax(self.output_layer(x))
+        x = self.linear_relu_stack(x)
+        x = F.sigmoid(x)
         return x
 
 def get_model_path(model_path, model_name):
@@ -91,16 +96,21 @@ def get_target_labels(y):
     return y
 
 def convert_input_to_tensor(X, y = None, start_index = -1, end_index = -1):
-    if start_index != -1:
+    if start_index != -1 and end_index != -1:
         X_values = torch.tensor(X.values[start_index:end_index])
+        X_values = X_values.type(torch.FloatTensor).to(torch.device("cuda:0"))
+    elif start_index != -1 and end_index == -1:
+        X_values = torch.tensor(X.values[start_index:])
         X_values = X_values.type(torch.FloatTensor).to(torch.device("cuda:0"))
     else:
         X_values = torch.tensor(X.values)
         X_values = X_values.type(torch.FloatTensor).to(torch.device("cuda:0"))
     
     if y is not(None):
-        if start_index != -1:
+        if start_index != -1 and end_index != -1:
             y_values = torch.tensor(y.iloc[start_index:end_index].values).to(torch.device('cuda:0'))
+        elif start_index != -1 and end_index == -1:
+            y_values = torch.tensor(y.iloc[start_index:].values).to(torch.device("cuda:0"))
         else:
             y_values = torch.tensor(y.values).to(torch.device('cuda:0'))
         return X_values, y_values
@@ -111,30 +121,33 @@ def train_model(model, X, y, criterion, optimizer, num_epochs, batch_size):
     print(X.shape)
     model.train()
     no_of_batches = int(X.shape[0] / batch_size) + 1
+    running_loss = 0.0
     for epoch in range(num_epochs):
-        running_loss = 0.0
-        print(f'Starting epoch {epoch}...')
+        print(f'Starting epoch {epoch}...\n')
+        loss_list = []
         for i, batch in enumerate(range(no_of_batches)):
             start_index = (i * batch_size)
             if ((start_index + batch_size) < X.shape[0]):
                 end_index = start_index + batch_size
                 X_values, y_values = convert_input_to_tensor(X, y, start_index, end_index)
-                #print(f'Batch {i}: from {start_index} to {end_index}')
             else:
                 start_index = ((i-1) * batch_size) + batch_size
-                X_values, y_values = convert_input_to_tensor(X, y, start_index, end_index)
-                #print(f'Batch {i}: from {start_index} to end of input')
+                X_values, y_values = convert_input_to_tensor(X, y, start_index, -1)
             optimizer.zero_grad()
-            #_, outputs = torch.max(model(X_values), 1)
             outputs = model(X_values)
-            #print('actual output', outputs[:5])
-            #print('expected output', y_values[:5])
             loss = criterion(outputs, y_values)
             loss.backward()
             optimizer.step()
             if not(torch.isnan(loss)):
-                running_loss += loss.item()
-        print(f'Running loss after epoch {epoch}: {running_loss}\n')
+                loss_list.append(loss.item())
+            else:
+                print(X_values)
+                print(y_values)
+                print(outputs)
+                print(loss, torch.isnan(X_values))
+                print(f'loss nan in batch {i}')
+                exit()
+        print(f'Running loss after epoch #{epoch}: {sum(loss_list) / no_of_batches}')
     return model, running_loss
 
 def predict(model, save_preds, pseudo_labeling_run, valid_X, test_X, label_dict):
@@ -225,7 +238,7 @@ if __name__ == "__main__":
         log_file_contents['preproc_params'] = preproc_params
         log_file_contents['selected_features'] = selected_features
         preds_df['type'] = ypreds
-        preds_df.to_csv(f'{csv_output_path}/{model_filename}.csv', index = False)
+        preds_df.to_csv(f'{csv_output_path}/{model_filename}.csv', index = False, mode = 'w+')
     elif pseudo_labeling_run == 0:
         preds_df['type'] = ypreds
         preds_df.to_csv(f'{csv_output_path}/new_data_preds.csv', index = False, mode = 'w+')

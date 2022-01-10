@@ -57,6 +57,7 @@ class Preprocessor:
         self.__test_train_split()
         self.__apply_vectorization()
         self.__make_new_features()
+        #self.__apply_normalization()
         self.__apply_scaling()
         return self.__apply_augmentation()
 
@@ -192,6 +193,7 @@ class Preprocessor:
         print('\t\tNo of features: ', len(list(self.train.columns)) - 3)
 
     def __apply_scaling(self):
+        print('\tApplying scaling')
         train_df = self.train.drop(columns = ['tweet', 'Tweet_ID', 'type'])
         test_df = self.test.drop(columns = ['tweet', 'Tweet_ID'])
         train_features = train_df.values.tolist()
@@ -206,6 +208,24 @@ class Preprocessor:
             self.__convert_vectors_dataframe(train_features, test_features, new_data_features, False)
         else:
             self.__convert_vectors_dataframe(train_features, test_features, None, False)
+
+    def __apply_normalization(self):
+        print('\tApplying normalization')
+        train_df = self.train.drop(columns = ['tweet', 'Tweet_ID', 'type'])
+        test_df = self.test.drop(columns = ['tweet', 'Tweet_ID'])
+        train_features = train_df.values.tolist()
+        test_features = test_df.values.tolist()
+        train_features = preprocessing.normalize(train_features, norm="l2")
+        test_features = preprocessing.normalize(test_features, norm="l2")
+        if self.preproc_args['apply_pseudo_labeling']:
+            new_data_df = self.new_data.drop(columns=['tweet', 'Tweet_ID', 'type'])
+            new_data_features = new_data_df.values.tolist()
+            new_data_features = preprocessing.normalize(new_data_features)
+            self.__convert_vectors_dataframe(train_features, test_features, new_data_features, False)
+        else:
+            self.__convert_vectors_dataframe(train_features, test_features, None, False)
+        
+
 
     def __convert_vectors_dataframe(self, train_features, test_features, new_data_features = None, merge = True):
         train_df = pd.DataFrame(train_features)
@@ -262,6 +282,7 @@ class Preprocessor:
         self.train = pd.concat([train_df, self.train_ids, train_texts], axis = 1)
         self.__visualize_target_distribution('stype')
         self.train = self.train.drop(columns = ['stype'])
+        
         if not(self.preproc_args['apply_pseudo_labeling']):
             return self.train, self.test, self.test_ids, self.features, self.class_dict
         return self.train, self.test, self.test_ids, self.features, self.class_dict, self.new_data
